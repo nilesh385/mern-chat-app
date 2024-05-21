@@ -17,7 +17,7 @@ const sendMessage = async (req, res) => {
     //the message is sent in a group conversation
     if (messageType === "group") {
       if (!conversationId) {
-        return res.status(400).send({ message: "Conversation id is required" });
+        return res.status(400).send({ error: "Conversation id is required" });
       }
 
       const isConversationExist = await Conversation.findOne({
@@ -25,7 +25,7 @@ const sendMessage = async (req, res) => {
       });
 
       if (!isConversationExist) {
-        return res.status(404).json({ message: "Conversation not found" });
+        return res.status(404).json({ error: "Conversation not found" });
       }
 
       if (contentType === "image") {
@@ -67,6 +67,7 @@ const sendMessage = async (req, res) => {
         console.error("Failed to update conversation lastMessage");
       }
 
+      //socket.io
       io.in(conversationId).emit("newMessage", message);
 
       return res.status(201).json(message);
@@ -147,6 +148,7 @@ const sendMessage = async (req, res) => {
         console.error("Failed to update conversation lastMessage");
       }
 
+      //socket.io
       io.to(receiverId).emit("newMessage", message);
 
       return res.status(201).json(message);

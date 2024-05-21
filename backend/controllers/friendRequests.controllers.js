@@ -4,7 +4,7 @@ import { User } from "../models/user.models.js";
 
 const sendFriendRequest = async (req, res) => {
   const senderId = req.user._id;
-  const { receiverId } = req.body;
+  const { receiverId } = req.params;
   try {
     // Validate senderId and receiverId
     if (

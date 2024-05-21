@@ -10,8 +10,8 @@ import {
 const router = express.Router();
 
 router.route("/").get(authUser, getFriendRequests);
+router.route("/send/:receiverId").post(authUser, sendFriendRequest);
 router.route("/accept/:requestId").put(authUser, acceptFriendRequest);
 router.route("/reject/:requestId").put(authUser, rejectFriendRequest);
-router.route("/send").post(authUser, sendFriendRequest);
 
 export default router;

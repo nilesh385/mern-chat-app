@@ -26,8 +26,8 @@ const createGroup = async (req, res) => {
     });
 
     if (groupPhoto) {
-      const { secure_url } = await cloudinary.uploader.upload(groupPhoto);
-      groupPhoto = secure_url;
+      const response = await cloudinary.uploader.upload(groupPhoto);
+      groupPhoto = response.secure_url;
     }
 
     const group = await Group.create({
@@ -58,6 +58,49 @@ const createGroup = async (req, res) => {
     return res
       .status(200)
       .json({ message: "conversation created successfully", group });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+const updateGroup = async (req, res) => {
+  try {
+    const { groupId, name, description, groupPhoto } = req.body;
+    const userId = req.user._id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(400).json({ message: "Group does not exist." });
+    }
+
+    const isCreator = group.creator === userId;
+    if (!isCreator) {
+      return res.status(400).json({ message: "You cannot edit the group." });
+    }
+
+    if (groupPhoto) {
+      // Check if group already has a group photo
+      if (group.groupPhoto) {
+        await cloudinary.uploader.destroy(
+          group.groupPhoto.split("/").pop().split(".")[0]
+        );
+      }
+      const response = await cloudinary.uploader.upload(groupPhoto);
+      groupPhoto = response.secure_url;
+    }
+
+    group.name = name || group.name;
+    group.description = description || group.description;
+    group.groupPhoto = groupPhoto || group.groupPhoto;
+
+    await group.save();
+
+    // Emit event to group room
+    io.in(group.conversationId).emit("groupUpdated", group);
+
+    return res
+      .status(200)
+      .json({ message: "Group updated successfully.", group });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -123,6 +166,13 @@ const leaveGroup = async (req, res) => {
         },
       }
     );
+
+    // Emit event to group room
+    io.in(group.conversationId).emit("leaveGroup", {
+      groupId: group._id,
+      userId,
+    });
+
     return res.status(200).json({ message: "Group left." });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -138,24 +188,22 @@ const addParticipantInGroup = async (req, res) => {
       return res.status(400).json({ error: "Provide required fields." });
     }
 
-    const userExist = await User.findById(newParticipantId);
-    if (!userExist) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ error: "Group not found." });
     }
-
     if (group.creator !== currentUserId) {
       return res
         .status(400)
         .json({ error: "You are not allowed to add new participants." });
     }
 
-    const conversation = await Conversation.findById(group.conversationId);
+    const userExist = await User.findById(newParticipantId);
+    if (!userExist) {
+      return res.status(400).json({ message: "User not found" });
+    }
 
+    const conversation = await Conversation.findById(group.conversationId);
     if (!conversation) {
       return res.status(400).json({ message: "Conversation not found" });
     }
@@ -187,6 +235,58 @@ const addParticipantInGroup = async (req, res) => {
 
 const removeParticipantFromGroup = async (req, res) => {
   try {
+    const { groupId, participantId } = req.body;
+    const currentUser = req.user;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(groupId) ||
+      !mongoose.Types.ObjectId.isValid(participantId)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Invalid group or participant id." });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(400).json({ error: "Group does not exist." });
+    }
+
+    const isCreator = group.creator === currentUser;
+    if (!isCreator) {
+      return res.status(400).json({ error: "You cannot remove participants." });
+    }
+
+    const userExist = await User.findById(participantId);
+    if (!userExist) {
+      return res.status(400).json({ error: "Participant does not exist." });
+    }
+
+    const conversation = await Conversation.findByIdAndUpdate(
+      {
+        _id: group.conversationId,
+      },
+      {
+        $pull: { participants: participantId },
+      }
+    );
+
+    await User.findByIdAndUpdate(
+      {
+        _id: participantId,
+      },
+      {
+        $pull: { groups: group._id },
+      }
+    );
+
+    // Emit event to group room
+    io.in(group.conversationId).emit("participantRemoved", {
+      groupId: group._id,
+      participantId,
+    });
+
+    return res.status(200).json({ message: "Removed user successfully." });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -194,6 +294,40 @@ const removeParticipantFromGroup = async (req, res) => {
 
 const deleteGroup = async (req, res) => {
   try {
+    const userId = req.user._id;
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      res.status(400).json({ message: "Group does not exist." });
+    }
+
+    const conversation = await Conversation.findById(group.conversationId);
+    if (!conversation) {
+      res.status(400).json({ message: "Conversation does not exist." });
+    }
+
+    const isCreator = group.creator === userId;
+    if (!isCreator) {
+      res.status(400).json({ message: "You cannot delete the group." });
+    }
+
+    await Promise.all(
+      await Group.findByIdAndDelete(groupId),
+      await Conversation.findByIdAndDelete(conversation._id),
+
+      conversation.participants.map((memberId) => {
+        return User.findByIdAndUpdate(memberId, {
+          $pull: {
+            groups: groupId,
+          },
+        });
+      })
+    );
+
+    io.in(conversation._id).emit("groupDeleted", { groupId });
+
+    res.status(200).json({ message: "Group deleted successfully" });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -206,4 +340,5 @@ export {
   addParticipantInGroup,
   removeParticipantFromGroup,
   deleteGroup,
+  updateGroup,
 };
