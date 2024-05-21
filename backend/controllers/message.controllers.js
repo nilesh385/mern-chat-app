@@ -2,7 +2,7 @@ import { Conversation } from "../models/conversation.models.js";
 import { Message } from "../models/message.models.js";
 import { v2 as cloudinary } from "cloudinary";
 import { User } from "../models/user.models.js";
-import { io } from "../socket/socket.js";
+import { getReceiverSocketId, io } from "../socket/socket.js";
 
 const sendMessage = async (req, res) => {
   try {
@@ -71,9 +71,9 @@ const sendMessage = async (req, res) => {
       io.in(conversationId).emit("newMessage", message);
 
       return res.status(201).json(message);
-    } else {
-      // the message is of a private conversation
-
+    }
+    // the message is of a private conversation
+    else {
       // Check if the sender and receiver are friends or not
       const senderFriends = await User.findById(senderId).select("friends");
       const receiverFriends = await User.findById(receiverId).select("friends");
@@ -149,7 +149,8 @@ const sendMessage = async (req, res) => {
       }
 
       //socket.io
-      io.to(receiverId).emit("newMessage", message);
+      const receiverSocketId = getReceiverSocketId(receiverId);
+      io.to(receiverSocketId).emit("newMessage", message);
 
       return res.status(201).json(message);
     }
