@@ -119,6 +119,46 @@ const logout = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { username, newPassword, confirmNewPassword } = req.body;
+
+    if (!username || !newPassword || !confirmNewPassword) {
+      return res
+        .status(400)
+        .json({ error: "Please fill all the required fields." });
+    }
+
+    const user = await User.find({ username });
+    if (!user) {
+      return res.status(404).json({ error: "Invalid username." });
+    }
+    if (newPassword !== confirmNewPassword) {
+      return res
+        .status(400)
+        .json({ error: "New password and confirm password doesn't match." });
+    }
+
+    const password = await bcrypt.hash(newPassword, 12);
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        username,
+      },
+      {
+        password,
+      }
+    );
+
+    updatedUser.password = null;
+
+    return res
+      .status(200)
+      .json({ message: "Password changed successfully.", updatedUser });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 const updateUserProfile = async (req, res) => {
   try {
     const { fullname, profilePhoto } = req.body;
@@ -234,4 +274,5 @@ export {
   getUser,
   searchUsers,
   getSuggestedUsers,
+  forgotPassword,
 };

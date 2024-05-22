@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  forgotPassword,
   getSuggestedUsers,
   getUser,
   login,
@@ -18,6 +19,7 @@ router.route("/search/:query").get(authUser, searchUsers);
 router.route("/logout").get(logout);
 router.route("/signup").post(signup);
 router.route("/login").post(login);
+router.route("/forgotPassword").post(forgotPassword);
 router.route("/updateProfile").post(authUser, updateUserProfile);
 
 export default router;
