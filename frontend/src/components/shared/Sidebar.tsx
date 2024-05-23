@@ -8,7 +8,6 @@ import { Button } from "../ui/button";
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  console.log(pathname);
   return (
     <Card className=" h-full px-2 py-4 flex flex-col justify-between">
       <div className="flex flex-col gap-12">
@@ -37,7 +36,9 @@ const Sidebar = () => {
           </Button>
         </Link>
       </div>
-      <ModeToggle />
+      <div>
+        <ModeToggle />
+      </div>
     </Card>
   );
 };

@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
-export default function LoginForm() {
+export default function Login() {
   const LoginSchema = z.object({
     usernameOrEmail: z.union([
       z.string().email({ message: "Must be a valid email address" }),

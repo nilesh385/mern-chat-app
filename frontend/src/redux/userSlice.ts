@@ -5,6 +5,7 @@ interface UserState {
   user: object;
   onlineUsers: string[];
   searchedUsers: object[];
+  selectedUser: object;
 }
 
 const userFromStrorage = localStorage.getItem("user")
@@ -15,6 +16,7 @@ const initialState: UserState = {
   user: userFromStrorage,
   onlineUsers: [],
   searchedUsers: [],
+  selectedUser: {},
 };
 
 const userSlice = createSlice({
@@ -30,6 +32,9 @@ const userSlice = createSlice({
     },
     setSearchedUsers: (state, action: PayloadAction<object[]>) => {
       state.searchedUsers = action.payload;
+    },
+    setSelectedUser: (state, action: PayloadAction<object>) => {
+      state.selectedUser = action.payload;
     },
   },
 });

@@ -1,11 +1,15 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducers from "./userSlice";
 import friendsReducers from "./friendsSlice";
+import conversationsReducers from "./conversationsSlice";
+import messagesReducers from "./messagesSlice";
 
 const store = configureStore({
   reducer: {
     user: userReducers,
     friends: friendsReducers,
+    conversations: conversationsReducers,
+    messages: messagesReducers,
   },
 });
 
