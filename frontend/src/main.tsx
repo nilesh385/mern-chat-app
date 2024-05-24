@@ -5,19 +5,23 @@ import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "./components/theme-provider.tsx";
+import { Provider } from "react-redux";
+import store from "./redux/store.ts";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <BrowserRouter>
-        <App />
-        <Toaster
-          closeButton
-          duration={4000}
-          richColors
-          position="bottom-right"
-        />
-      </BrowserRouter>
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <BrowserRouter>
+          <App />
+          <Toaster
+            closeButton
+            duration={4000}
+            richColors
+            position="bottom-right"
+          />
+        </BrowserRouter>
+      </ThemeProvider>
+    </Provider>
   </React.StrictMode>
 );

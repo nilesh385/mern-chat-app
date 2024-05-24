@@ -31,7 +31,7 @@ const signup = async (req, res) => {
       } else {
         error = "Email already exists";
       }
-      return res.status(409).json({ error });
+      return res.status(400).json({ error });
     }
 
     let cloudinaryUrl;
@@ -43,7 +43,7 @@ const signup = async (req, res) => {
       fullname,
       username,
       email,
-      password: hashedPassword,
+      password,
       profilePhoto: cloudinaryUrl,
     });
 

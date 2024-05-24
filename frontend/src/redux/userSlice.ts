@@ -8,6 +8,7 @@ interface UserState {
   selectedUser: object;
 }
 
+// console.log(JSON.parse(localStorage.getItem("user")));
 const userFromStrorage = localStorage.getItem("user")
   ? JSON.parse(localStorage.getItem("user")!)
   : null;
